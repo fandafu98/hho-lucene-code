@@ -38,7 +38,12 @@ import java.util.function.Consumer;
 @Service
 public class LuceneDemoManagerImpl implements LuceneDemoManager {
 
-
+    /**
+     * 分页检索满足条件的doc
+     *
+     * @param pageParam
+     * @return
+     */
     @Override
     public PageResult<ContentResult> pageQuery(PageParam<SearchParam> pageParam) {
 
@@ -113,6 +118,12 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
         }
     }
 
+    /**
+     * 查询满足条件的文档数
+     *
+     * @param searchParam
+     * @return
+     */
     @Override
     public Integer getDocsCount(SearchParam searchParam) {
 
@@ -129,7 +140,12 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
         }
     }
 
-
+    /**
+     * 组装通用查询条件
+     *
+     * @param searchParam 查询对象
+     * @return
+     */
     private Query buildBooleanQuery(SearchParam searchParam) {
 
         // 查询器结合
@@ -175,7 +191,11 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
         return booleanQuery;
     }
 
-
+    /**
+     * 基于id增量批量更新索引
+     *
+     * @param paramList
+     */
     @Override
     public void updateBatch(List<UpdateBatchParam> paramList) {
 
