@@ -76,7 +76,7 @@ public class SearchApi {
     @PostMapping("/update-batch")
     public RestResponseInfo<String> updateBatch(@RequestBody List<UpdateBatchRequest> requestList) {
         List<UpdateBatchParam> paramList = searchApiObjMapper.toUpdateBatchParam(requestList);
-        luceneDemoManager.updateBatch2(paramList);
+        luceneDemoManager.updateBatch(paramList);
         return RestResponseInfo.ok();
     }
 
