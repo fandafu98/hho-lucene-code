@@ -82,10 +82,4 @@ public class SearchApi {
     }
 
 
-    @PostMapping("/hello")
-    public RestResponseInfo<String> updateBatch() {
-        return RestResponseInfo.ok("nihao");
-    }
-
-
 }

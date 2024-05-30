@@ -23,8 +23,6 @@ import java.util.Date;
 @Component
 public class InitIndexDataRunner implements ApplicationRunner {
 
-    // private IndexWriter indexWriter;
-
     @Override
     public void run(ApplicationArguments args) {
         IndexWriter indexWriter = LuceneUtil.indexWriter();

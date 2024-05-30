@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 /**
@@ -169,6 +170,7 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
 
     @Override
     public void updateBatch(List<UpdateBatchParam> paramList) {
+
 
         // 获取写出器
         IndexWriter indexWriter = LuceneUtil.indexWriter();
