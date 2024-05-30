@@ -4,18 +4,16 @@
 package com.hho.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
-import cn.hutool.core.date.DateField;
 import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.util.RandomUtil;
 import com.hho.domain.page.PageParam;
 import com.hho.domain.page.PageResult;
 import com.hho.domain.param.SearchParam;
 import com.hho.domain.param.UpdateBatchParam;
 import com.hho.domain.result.ContentResult;
 import com.hho.framework.constant.DocumentFieldConstant;
-import com.hho.framework.constant.MokeDataConstant;
 import com.hho.framework.util.LuceneUtil;
 import com.hho.service.LuceneDemoManager;
+import com.hho.utils.LockUtil;
 import com.hho.utils.ManualPageHelperUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -194,44 +192,46 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
                     throw new RuntimeException("ID不能为空");
                 }
 
-                MatchAllDocsQuery matchAllDocsQuery = new MatchAllDocsQuery();
-                try {
-                    TopDocs topDocs = LuceneUtil.indexSearcher().search(matchAllDocsQuery, 1000);
-                    for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
-                        Document document = indexReader.document(scoreDoc.doc);
-                        System.out.println("id:" + document.get("id"));
-                        System.out.println("title:" + document.get("title"));
+                LockUtil.lock(updateBatchParam.getId(), () -> {
+
+                    MatchAllDocsQuery matchAllDocsQuery = new MatchAllDocsQuery();
+                    try {
+                        TopDocs topDocs = LuceneUtil.indexSearcher().search(matchAllDocsQuery, 1000);
+                        for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
+                            Document document = indexReader.document(scoreDoc.doc);
+                            System.out.println("id:" + document.get("id"));
+                            System.out.println("title:" + document.get("title"));
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
 
-                try {
-                    // 获取Long查询器
-                    Query idQuery = NumericRangeQuery.newLongRange(DocumentFieldConstant.ID, Long.valueOf(updateBatchParam.getId()), Long.valueOf(updateBatchParam.getId()), true, true);
-                    // 查询结果集
-                    TopDocs topDocs = LuceneUtil.indexSearcher().search(idQuery, 1);
+                    try {
+                        // 获取Long查询器
+                        Query idQuery = NumericRangeQuery.newLongRange(DocumentFieldConstant.ID, Long.valueOf(updateBatchParam.getId()), Long.valueOf(updateBatchParam.getId()), true, true);
+                        // 查询结果集
+                        TopDocs topDocs = LuceneUtil.indexSearcher().search(idQuery, 1);
 
-                    // 文档操作的consumer
-                    Consumer<Document> documentConsumer = documentConsumer(topDocs, indexWriter, idQuery);
+                        // 文档操作的consumer
+                        Consumer<Document> documentConsumer = documentConsumer(topDocs, indexWriter, idQuery);
 
-                    // 创建文档
-                    Document document = new Document();
-                    document.add(new LongField(DocumentFieldConstant.ID, Long.valueOf(updateBatchParam.getId()), Field.Store.YES));
-                    document.add(new TextField(DocumentFieldConstant.TITLE, updateBatchParam.getTitle(), Field.Store.YES));
-                    document.add(new StringField(DocumentFieldConstant.STATUS, updateBatchParam.getStatus(), Field.Store.YES));
-                    // 日期就是当前时间
-                    document.add(new LongField(DocumentFieldConstant.TIME, System.currentTimeMillis(), Field.Store.YES));
+                        // 创建文档
+                        Document document = new Document();
+                        document.add(new LongField(DocumentFieldConstant.ID, Long.valueOf(updateBatchParam.getId()), Field.Store.YES));
+                        document.add(new TextField(DocumentFieldConstant.TITLE, updateBatchParam.getTitle(), Field.Store.YES));
+                        document.add(new StringField(DocumentFieldConstant.STATUS, updateBatchParam.getStatus(), Field.Store.YES));
+                        // 日期就是当前时间
+                        document.add(new LongField(DocumentFieldConstant.TIME, System.currentTimeMillis(), Field.Store.YES));
 
-                    // 执行操作
-                    documentConsumer.accept(document);
+                        // 执行操作
+                        documentConsumer.accept(document);
 
-                    // 提交
-                    indexWriter.commit();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-
+                        // 提交
+                        indexWriter.commit();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
             }
 
         } finally {

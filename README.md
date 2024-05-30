@@ -15,7 +15,7 @@
 
 # 大致流程
 
-1.项目启动时，先通过``com.hho.framework.runner.InitIndexDataRunner``类，自动初始化100条数据
+1.项目启动时，先通过``com.hho.framework.runner.InitIndexDataRunner``类，通过随机数索引拼接``com.hho.framework.constant.MokeDataConstant``类中的常量参数生成随机数据，自动初始化100条数据
 
 2.业务接口层：``com.hho.service.LuceneDemoManager`` 包含了如下接口
 

@@ -1,36 +1,33 @@
 package com.hho.utils;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Supplier;
 
 
 @Slf4j
 public class LockUtil {
 
-    private static ReentrantLock reentrantLock = new ReentrantLock();
+    private static final Map<String, ReentrantLock> lockMap = new ConcurrentHashMap<>();
 
-
-
-    public <R> R lockAndDo(String key, Supplier<R> supplier) {
-        try {
-            boolean islock = reentrantLock.tryLock();
-            if (!islock) {
-                while (!islock) {
-                    islock = reentrantLock.tryLock();
-                    log.info(" =============>>> 尝试获取锁  <<<============= " + key);
-                    Thread.sleep(300);
-                }
+    /**
+     *
+     * @param key 锁的ID
+     * @param runnable 执行语句
+     */
+    public static void lock(String key, Runnable runnable) {
+        // 如果锁的Id为空，直接返回
+        if (StringUtils.isBlank(key)) {
+            ReentrantLock lock = lockMap.computeIfAbsent(key, k -> new ReentrantLock());
+            lock.lock();
+            try {
+                runnable.run();
+            } finally {
+                lock.unlock();
             }
-            log.info(" =============>>> 主方法体开始执行  <<<============= ");
-            return supplier.get();
-        } catch (Exception e) {
-            log.error(" =============>>> 加锁过程发生异常  <<<============= ", e);
-            throw new RuntimeException(e);
-        } finally {
-            log.info(" =============>>> 解锁  <<<============= ");
-            reentrantLock.unlock();
         }
     }
 
