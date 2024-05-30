@@ -6,6 +6,7 @@ package com.hho.framework.runner;
 import cn.hutool.core.date.DateField;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.RandomUtil;
+import com.hho.framework.constant.DocumentFieldConstant;
 import com.hho.framework.constant.MokeDataConstant;
 import com.hho.framework.util.LuceneUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +19,9 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.Date;
 
-/** * @author zhengyankang * @version InitIndexDataRunner.java, v 0.1 2024-05-28 21:36 */
+/**
+ * @author zhengyankang * @version InitIndexDataRunner.java, v 0.1 2024-05-28 21:36
+ */
 @Slf4j
 @Component
 public class InitIndexDataRunner implements ApplicationRunner {
@@ -34,7 +37,7 @@ public class InitIndexDataRunner implements ApplicationRunner {
             Date today = new Date();
             for (int i = 1; i <= 100; i++) {
                 Document document = new Document();
-                document.add(new LongField("id", Long.valueOf(i), Field.Store.YES));
+                document.add(new LongField(DocumentFieldConstant.ID, Long.valueOf(i), Field.Store.YES));
 
                 // 取模，用于生成随机内容的索引
                 int index_name = RandomUtil.randomInt(0, 5);
@@ -49,10 +52,10 @@ public class InitIndexDataRunner implements ApplicationRunner {
                         MokeDataConstant.TITLE_TEMPLATE_CAMERA[index_camera],
                         MokeDataConstant.TITLE_TEMPLATE_SCREEN[index_screen]);
 
-                document.add(new TextField("title", title, Field.Store.YES));
-                document.add(new StringField("status", MokeDataConstant.STATUS_RANDOM[status_random], Field.Store.YES));
+                document.add(new TextField(DocumentFieldConstant.TITLE, title, Field.Store.YES));
+                document.add(new StringField(DocumentFieldConstant.STATUS, MokeDataConstant.STATUS_RANDOM[status_random], Field.Store.YES));
                 // 日期从今天开始，2024-05-28 往后偏100天
-                document.add(new LongField("time", DateUtil.offset(today, DateField.DAY_OF_YEAR, i).getTime(), Field.Store.YES));
+                document.add(new LongField(DocumentFieldConstant.TIME, DateUtil.offset(today, DateField.DAY_OF_YEAR, i).getTime(), Field.Store.YES));
                 indexWriter.addDocument(document);
             }
             indexWriter.commit();

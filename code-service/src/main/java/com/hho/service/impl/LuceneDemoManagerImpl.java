@@ -10,6 +10,7 @@ import com.hho.domain.page.PageResult;
 import com.hho.domain.param.SearchParam;
 import com.hho.domain.param.UpdateBatchParam;
 import com.hho.domain.result.ContentResult;
+import com.hho.framework.constant.DocumentFieldConstant;
 import com.hho.framework.util.LuceneUtil;
 import com.hho.service.LuceneDemoManager;
 import com.hho.utils.ManualPageHelperUtil;
@@ -27,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 /**
@@ -56,11 +56,11 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
         int end = start + pageSize;
 
         // 构建查询条件BooleanQuery
-        BooleanQuery booleanQuery = buildBooleanQuery(searchParam);
+        Query booleanQuery = buildBooleanQuery(searchParam);
 
         try {
             // 创建排序对象，false.升序。true.降序
-            Sort sort = new Sort(new SortField("id", SortField.Type.LONG, searchParam.getIsDesc()));
+            Sort sort = new Sort(new SortField(DocumentFieldConstant.ID, SortField.Type.LONG, searchParam.getIsDesc()));
 
             TopDocs topDocs = LuceneUtil.indexSearcher().search(booleanQuery, end, sort);
             if (topDocs.totalHits == 0) {
@@ -89,10 +89,10 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
                 // 这里本来用反射做了，但发现结果太啰嗦了，反而会绕晕阅读者，所以直接用字段属性赋值的方法
                 // 这里暂时用了魔法值，我还没想到更优雅的方法，或者用常量先代替一下吧
                 ContentResult contentResult = new ContentResult();
-                contentResult.setId(Long.valueOf(document.get("id")));
-                contentResult.setTitle(document.get("title"));
-                contentResult.setStatus(document.get("status"));
-                contentResult.setTime(DateUtil.formatDate(new Date(Long.valueOf(document.get("time")))));
+                contentResult.setId(Long.valueOf(document.get(DocumentFieldConstant.ID)));
+                contentResult.setTitle(document.get(DocumentFieldConstant.TITLE));
+                contentResult.setStatus(document.get(DocumentFieldConstant.STATUS));
+                contentResult.setTime(DateUtil.formatDate(new Date(Long.valueOf(document.get(DocumentFieldConstant.TIME)))));
                 resultList.add(contentResult);
             });
 
@@ -117,9 +117,9 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
 
         try {
             // 构建查询条件BooleanQuery
-            BooleanQuery booleanQuery = buildBooleanQuery(searchParam);
+            Query booleanQuery = buildBooleanQuery(searchParam);
 
-            TopDocs topDocs = LuceneUtil.indexSearcher().search(booleanQuery, 50);
+            TopDocs topDocs = LuceneUtil.indexSearcher().search(booleanQuery, Integer.MAX_VALUE);
             return topDocs.scoreDocs.length;
 
         } catch (IOException e) {
@@ -129,22 +129,22 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
     }
 
 
-    private BooleanQuery buildBooleanQuery(SearchParam searchParam) {
+    private Query buildBooleanQuery(SearchParam searchParam) {
 
         // 查询器结合
         Collection<Query> queryList = new ArrayList<>();
 
         // 标题内容查询
         if (StringUtils.isNotBlank(searchParam.getTitle())) {
-            Query titleQuery = new TermQuery(new Term("title", searchParam.getTitle()));
+            Query titleQuery = new TermQuery(new Term(DocumentFieldConstant.TITLE, searchParam.getTitle()));
             queryList.add(titleQuery);
         }
 
         // 状态多值匹配
         if (CollectionUtil.isNotEmpty(searchParam.getStatusList())) {
-            PhraseQuery statusQuery = new PhraseQuery();
+            BooleanQuery statusQuery = new BooleanQuery();
             searchParam.getStatusList().forEach(status -> {
-                statusQuery.add(new Term("status", status), 0);
+                statusQuery.add(new TermQuery(new Term(DocumentFieldConstant.STATUS, status)), BooleanClause.Occur.SHOULD);
             });
             queryList.add(statusQuery);
         }
@@ -152,7 +152,7 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
         // 时间范围查询
         if (StringUtils.isNotBlank(searchParam.getStartTime()) && StringUtils.isNotBlank(searchParam.getEndTime())) {
             Query timeQuery = NumericRangeQuery.newLongRange(
-                    "time",
+                    DocumentFieldConstant.TIME,
                     DateUtil.parse(searchParam.getStartTime()).getTime(),
                     DateUtil.parse(searchParam.getEndTime()).getTime(),
                     true,
@@ -164,13 +164,19 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
         queryList.forEach(query -> {
             booleanQuery.add(query, BooleanClause.Occur.MUST);
         });
+
+        // 如果都没有查询，就默认查所有
+        if (CollectionUtil.isEmpty(queryList)) {
+            MatchAllDocsQuery matchAllDocsQuery = new MatchAllDocsQuery();
+            return matchAllDocsQuery;
+        }
+
         return booleanQuery;
     }
 
 
     @Override
     public void updateBatch(List<UpdateBatchParam> paramList) {
-
 
         // 获取写出器
         IndexWriter indexWriter = LuceneUtil.indexWriter();
@@ -199,33 +205,24 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
 
                 try {
                     // 获取Long查询器
-                    Query idQuery = NumericRangeQuery.newLongRange("id", Long.valueOf(updateBatchParam.getId()), Long.valueOf(updateBatchParam.getId()), true, true);
+                    Query idQuery = NumericRangeQuery.newLongRange(DocumentFieldConstant.ID, Long.valueOf(updateBatchParam.getId()), Long.valueOf(updateBatchParam.getId()), true, true);
                     // 查询结果集
                     TopDocs topDocs = LuceneUtil.indexSearcher().search(idQuery, 1);
 
-                    if (topDocs.scoreDocs.length == 0) {
-                        // 没查询到就新增
-                        Document document = new Document();
-                        document.add(new LongField("id", Long.valueOf(updateBatchParam.getId()), Field.Store.YES));
-                        document.add(new TextField("title", updateBatchParam.getTitle(), Field.Store.YES));
-                        document.add(new StringField("status", updateBatchParam.getStatus(), Field.Store.YES));
-                        // 日期就是当前时间
-                        document.add(new LongField("time", System.currentTimeMillis(), Field.Store.YES));
+                    // 文档操作的consumer
+                    Consumer<Document> documentConsumer = documentConsumer(topDocs, indexWriter, idQuery);
 
-                        indexWriter.addDocument(document);
+                    // 创建文档
+                    Document document = new Document();
+                    document.add(new LongField(DocumentFieldConstant.ID, Long.valueOf(updateBatchParam.getId()), Field.Store.YES));
+                    document.add(new TextField(DocumentFieldConstant.TITLE, updateBatchParam.getTitle(), Field.Store.YES));
+                    document.add(new StringField(DocumentFieldConstant.STATUS, updateBatchParam.getStatus(), Field.Store.YES));
+                    // 日期就是当前时间
+                    document.add(new LongField(DocumentFieldConstant.TIME, System.currentTimeMillis(), Field.Store.YES));
 
-                    } else if (topDocs.scoreDocs.length == 1) {
-                        // 查询到了就更新
-                        // 创建新的文档数据
-                        Document document = new Document();
-                        document.add(new LongField("id", Long.valueOf(updateBatchParam.getId()), Field.Store.YES));
-                        document.add(new TextField("title", updateBatchParam.getTitle(), Field.Store.YES));
-                        document.add(new StringField("status", updateBatchParam.getStatus(), Field.Store.YES));
-                        document.add(new LongField("time", System.currentTimeMillis(), Field.Store.YES));
+                    // 执行操作
+                    documentConsumer.accept(document);
 
-                        indexWriter.deleteDocuments(idQuery);
-                        indexWriter.addDocument(document);
-                    }
                     // 提交
                     indexWriter.commit();
                 } catch (IOException e) {
@@ -260,7 +257,7 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
      */
     Consumer<Document> documentConsumer(TopDocs topDocs, IndexWriter indexWriter, Query idQuery) {
         // 如果结果集长度==0，说明没有该ID对应的记录，为新增
-        if (topDocs.scoreDocs.length == 0) {
+        if (null != topDocs && null != topDocs.scoreDocs && topDocs.scoreDocs.length == 0) {
             return (a) -> {
                 try {
                     indexWriter.addDocument(a);
