@@ -18,7 +18,6 @@ import com.hho.web.domain.request.UpdateBatchRequest;
 import com.hho.web.domain.response.ContentResponse;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -77,7 +76,7 @@ public class SearchApi {
     @PostMapping("/update-batch")
     public RestResponseInfo<String> updateBatch(@RequestBody List<UpdateBatchRequest> requestList) {
         List<UpdateBatchParam> paramList = searchApiObjMapper.toUpdateBatchParam(requestList);
-        luceneDemoManager.updateBatch(paramList);
+        luceneDemoManager.updateBatch2(paramList);
         return RestResponseInfo.ok();
     }
 

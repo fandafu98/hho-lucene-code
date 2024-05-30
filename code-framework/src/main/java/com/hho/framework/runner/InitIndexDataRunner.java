@@ -67,7 +67,6 @@ public class InitIndexDataRunner implements ApplicationRunner {
                 if (null != indexWriter) {
                     indexWriter.close();
                 }
-
             } catch (IOException e) {
                 e.printStackTrace();
             }
