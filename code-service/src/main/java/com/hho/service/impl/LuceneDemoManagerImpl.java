@@ -214,18 +214,6 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
 
                 LockUtil.lock(updateBatchParam.getId(), () -> {
 
-                    MatchAllDocsQuery matchAllDocsQuery = new MatchAllDocsQuery();
-                    try {
-                        TopDocs topDocs = LuceneUtil.indexSearcher().search(matchAllDocsQuery, 1000);
-                        for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
-                            Document document = indexReader.document(scoreDoc.doc);
-                            System.out.println("id:" + document.get("id"));
-                            System.out.println("title:" + document.get("title"));
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
                     try {
                         // 获取Long查询器
                         Query idQuery = NumericRangeQuery.newLongRange(DocumentFieldConstant.ID, Long.valueOf(updateBatchParam.getId()), Long.valueOf(updateBatchParam.getId()), true, true);
