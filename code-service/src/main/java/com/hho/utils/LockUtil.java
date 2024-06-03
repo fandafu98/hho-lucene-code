@@ -19,8 +19,9 @@ public class LockUtil {
      * @param runnable 逻辑代码执行
      */
     public static void lock(String key, Runnable runnable) {
+
         // 如果锁的Id为空，直接返回
-        if (StringUtils.isBlank(key)) {
+        if (StringUtils.isNotBlank(key)) {
             ReentrantLock lock = lockMap.computeIfAbsent(key, k -> new ReentrantLock());
             lock.lock();
             try {
@@ -28,6 +29,8 @@ public class LockUtil {
             } finally {
                 lock.unlock();
             }
+        } else {
+            throw new RuntimeException("加锁失败，ID为空，请确认后再操作");
         }
     }
 
