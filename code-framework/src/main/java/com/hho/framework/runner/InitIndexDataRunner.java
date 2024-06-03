@@ -26,17 +26,22 @@ import java.util.Date;
 @Component
 public class InitIndexDataRunner implements ApplicationRunner {
 
+    /**
+     * 当SpringBoot项目启动时，为lucene初始化一些模拟数据
+     * @param args
+     */
     @Override
     public void run(ApplicationArguments args) {
+        // 获取写出器
         IndexWriter indexWriter = LuceneUtil.indexWriter();
         try {
             log.info("=========== 开始初始化lucene内的数据");
-
-            indexWriter.deleteAll();
             // 今日时间
             Date today = new Date();
             for (int i = 1; i <= 100; i++) {
+
                 Document document = new Document();
+                // 设置ID
                 document.add(new LongField(DocumentFieldConstant.ID, Long.valueOf(i), Field.Store.YES));
 
                 // 取模，用于生成随机内容的索引
@@ -52,12 +57,17 @@ public class InitIndexDataRunner implements ApplicationRunner {
                         MokeDataConstant.TITLE_TEMPLATE_CAMERA[index_camera],
                         MokeDataConstant.TITLE_TEMPLATE_SCREEN[index_screen]);
 
+                // 设置title
                 document.add(new TextField(DocumentFieldConstant.TITLE, title, Field.Store.YES));
+                // 设置状态
                 document.add(new StringField(DocumentFieldConstant.STATUS, MokeDataConstant.STATUS_RANDOM[status_random], Field.Store.YES));
                 // 日期从今天开始，2024-05-28 往后偏100天
+                // 设置日期
                 document.add(new LongField(DocumentFieldConstant.TIME, DateUtil.offset(today, DateField.DAY_OF_YEAR, i).getTime(), Field.Store.YES));
+                // 新增文档
                 indexWriter.addDocument(document);
             }
+            // 提交
             indexWriter.commit();
         } catch (IOException e) {
             log.error("发生异常", e);
@@ -73,6 +83,5 @@ public class InitIndexDataRunner implements ApplicationRunner {
         }
         log.info("=========== lucene数据初始化完成");
     }
-
 
 }

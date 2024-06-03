@@ -16,7 +16,7 @@ public class LockUtil {
     /**
      *
      * @param key 锁的ID
-     * @param runnable 执行语句
+     * @param runnable 逻辑代码执行
      */
     public static void lock(String key, Runnable runnable) {
         // 如果锁的Id为空，直接返回

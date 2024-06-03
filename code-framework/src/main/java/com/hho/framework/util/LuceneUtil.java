@@ -39,7 +39,6 @@ public class LuceneUtil {
         try {
             Directory directory = directory();
             IndexWriterConfig indexWriterConfig = new IndexWriterConfig(Version.LATEST, new IKAnalyzer());
-            indexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
             IndexWriter indexWriter = new IndexWriter(directory, indexWriterConfig);
             return indexWriter;
         } catch (IOException e) {

@@ -205,13 +205,14 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
         IndexReader indexReader = LuceneUtil.indexReader();
 
         try {
-
+            // 遍历每个新增或更新的对象体
             for (UpdateBatchParam updateBatchParam : paramList) {
 
                 if (StringUtils.isBlank(updateBatchParam.getId())) {
                     throw new RuntimeException("ID不能为空");
                 }
 
+                // 根据当前更新或新增的文档ID，获取对应的ReentrantLock，进行锁同步
                 LockUtil.lock(updateBatchParam.getId(), () -> {
 
                     try {
@@ -220,8 +221,8 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
                         // 查询结果集
                         TopDocs topDocs = LuceneUtil.indexSearcher().search(idQuery, 1);
 
-                        // 文档操作的consumer
-                        Consumer<Document> documentConsumer = documentConsumer(topDocs, indexWriter, idQuery);
+                        // 获取新增或更新文档操作的consumer
+                        Consumer<Document> documentConsumer = documentConsumer(topDocs, indexWriter, Long.valueOf(updateBatchParam.getId()));
 
                         // 创建文档
                         Document document = new Document();
@@ -231,7 +232,7 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
                         // 日期就是当前时间
                         document.add(new LongField(DocumentFieldConstant.TIME, System.currentTimeMillis(), Field.Store.YES));
 
-                        // 执行操作
+                        // 执行新增或更新文档的操作
                         documentConsumer.accept(document);
 
                         // 提交
@@ -263,25 +264,26 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
      *
      * @param topDocs     本次查询结果集
      * @param indexWriter 写出器
-     * @param idQuery     查询对象
+     * @param id          查询对象
      * @return
      */
-    Consumer<Document> documentConsumer(TopDocs topDocs, IndexWriter indexWriter, Query idQuery) {
+    Consumer<Document> documentConsumer(TopDocs topDocs, IndexWriter indexWriter, Long id) {
         // 如果结果集长度==0，说明没有该ID对应的记录，为新增
         if (null != topDocs && null != topDocs.scoreDocs && topDocs.scoreDocs.length == 0) {
-            return (a) -> {
+            return (document) -> {
                 try {
-                    indexWriter.addDocument(a);
+                    // 新增文档
+                    indexWriter.addDocument(document);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             };
         } else {
             // 否则，就是就更新操作
-            return (a) -> {
+            return (document) -> {
                 try {
-                    indexWriter.deleteDocuments(idQuery);
-                    indexWriter.addDocument(a);
+                    // 更新文档
+                    indexWriter.updateDocument(new Term(DocumentFieldConstant.ID, String.valueOf(id)), document);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
