@@ -240,6 +240,7 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
+
                 });
             }
 
