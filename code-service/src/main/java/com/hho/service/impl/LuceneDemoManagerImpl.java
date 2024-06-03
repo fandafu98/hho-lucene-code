@@ -151,13 +151,13 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
         // 查询器结合
         Collection<Query> queryList = new ArrayList<>();
 
-        // 标题内容查询
+        // title标题内容查询
         if (StringUtils.isNotBlank(searchParam.getTitle())) {
             Query titleQuery = new TermQuery(new Term(DocumentFieldConstant.TITLE, searchParam.getTitle()));
             queryList.add(titleQuery);
         }
 
-        // 状态多值匹配
+        // status状态多值匹配
         if (CollectionUtil.isNotEmpty(searchParam.getStatusList())) {
             BooleanQuery statusQuery = new BooleanQuery();
             searchParam.getStatusList().forEach(status -> {
@@ -166,7 +166,7 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
             queryList.add(statusQuery);
         }
 
-        // 时间范围查询
+        // time时间范围查询
         if (StringUtils.isNotBlank(searchParam.getStartTime()) && StringUtils.isNotBlank(searchParam.getEndTime())) {
             Query timeQuery = NumericRangeQuery.newLongRange(
                     DocumentFieldConstant.TIME,
@@ -177,6 +177,7 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
             queryList.add(timeQuery);
         }
 
+        // 组装查询器
         BooleanQuery booleanQuery = new BooleanQuery();
         queryList.forEach(query -> {
             booleanQuery.add(query, BooleanClause.Occur.MUST);
@@ -184,10 +185,12 @@ public class LuceneDemoManagerImpl implements LuceneDemoManager {
 
         // 如果都没有查询，就默认查所有
         if (CollectionUtil.isEmpty(queryList)) {
+            // 默认全值匹配查询
             MatchAllDocsQuery matchAllDocsQuery = new MatchAllDocsQuery();
             return matchAllDocsQuery;
         }
 
+        // 返回
         return booleanQuery;
     }
 

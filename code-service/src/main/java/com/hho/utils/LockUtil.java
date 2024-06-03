@@ -11,11 +11,11 @@ import java.util.concurrent.locks.ReentrantLock;
 @Slf4j
 public class LockUtil {
 
+    // ID对应的lock
     private static final Map<String, ReentrantLock> lockMap = new ConcurrentHashMap<>();
 
     /**
-     *
-     * @param key 锁的ID
+     * @param key      传要新增或更新的文档的ID
      * @param runnable 逻辑代码执行
      */
     public static void lock(String key, Runnable runnable) {
@@ -30,5 +30,6 @@ public class LockUtil {
             }
         }
     }
+
 
 }
